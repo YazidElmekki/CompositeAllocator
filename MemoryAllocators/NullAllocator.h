@@ -22,7 +22,6 @@ namespace CustomAllocators
 
 		void deallocateAll()
 		{
-
 		}
 
 		bool owns(Block& b)

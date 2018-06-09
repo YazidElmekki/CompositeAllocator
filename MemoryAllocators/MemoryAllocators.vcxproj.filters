@@ -39,6 +39,18 @@
     <ClInclude Include="FreeListAllocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BitmapAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Mallocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Segregator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BucketizerAllocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

@@ -8,81 +8,63 @@
 
 namespace CustomAllocators
 {
-	template<size_t stackSize, size_t alignement = 64>
+	template<size_t stackSize>
 	class StackAllocator
 	{
-		char data[stackSize];
-		char* ptr;
+		char data_[stackSize];
+		char* ptr_;
 	public:
 		StackAllocator()
-			: ptr(data)
+			: ptr_(data_)
 		{
 		}
 		
 		StackAllocator(const StackAllocator&) = delete;
 		StackAllocator(StackAllocator&&) = delete;
-
-		size_t roundToAlligned(size_t s)
-		{
-			if (alignement == 0)
-			{
-				return s;
-			}
-
-			size_t rest = s % alignement;
-			if (rest == 0)
-			{
-				return s;
-			}
-
-			return s + alignement - rest;
-		}
 		
 		Block allocate(size_t s)
 		{
 			Block b;
 
-			long long addrBefore = (long long)(ptr);
+			long long addrBefore = (long long)(ptr_);
 
-			size_t alignedSize = roundToAlligned(s);
-
-			if (ptr + alignedSize <= &data[0] + stackSize)
+			if (ptr_ + s <= &data_[0] + stackSize)
 			{
-				b.ptr = ptr;
-				b.size = alignedSize;
+				b.ptr = ptr_;
+				b.size = s;
 
-				ptr += alignedSize;
+				ptr_ += s;
 
-				assert((long long)ptr - addrBefore == alignedSize && "Invalid pointer move in stack allocator");
+				assert((long long)ptr_ - addrBefore == s && "Invalid pointer move in stack allocator");
 			}
 
 			return b;
 		}
 
+		Block allocateAligned(size_t s)
+		{
+			allocate(roundToAlligned(s, ALIGNEMENT));
+		}
+
+
 		void deallocate(Block& b)
 		{
-			if ((char*)b.ptr + b.size == ptr)
+			if ((char*)b.ptr + b.size == ptr_)
 			{
-				ptr -= b.size;
+				ptr_ -= b.size;
 			}
 		}
 
 		void deallocateAll()
 		{
-			ptr = &data[0];
+			ptr_ = &data_[0];
 		}
 
 		bool owns(Block& b)
 		{
-			if (b.ptr >= data && b.ptr <= ptr)
-			{
-				return true;
-			}
-
-			return false;
+			return b.ptr != nullptr && b.ptr >= data_ && b.ptr <= ptr_;
 		}
 	};
 
 }//namespace CustomAllocators
-
 #endif // !__STACKALLOCATOR_H_INCLUDED__

@@ -3,48 +3,92 @@
 
 #include "Block.h"
 
-namespace MemoryAllocators
+namespace CustomAllocators
 {
-	template<class A, size_t s>
+	template<class A, size_t minSize, size_t maxSize>
 	class FreeListAllocator
 	{
-		A parent;
-		struct Node { Node* next; };
+	private:
+		A allocator_;
+		struct Node { Node* next = nullptr; };
 
-		Node* root = nullptr;
+		Node* root_ = nullptr;
+
+		size_t bSize_ = maxSize;
+		size_t minAllocationSize = minSize;
+		size_t maxAllocationSize = maxSize;
 
 	public:
+		~FreeListAllocator()
+		{
+			Block b = { nullptr, maxAllocationSize };
+
+			while (root_ != nullptr)
+			{
+				b.ptr = (void*)root_;
+				root_ = root_->next;
+				allocator_.deallocate(b);
+			}
+		}
+
+		void setSizes(size_t minS, size_t maxS)
+		{
+			assert
+			(
+				maxAllocationSize == 0	&&
+				maxS != 0				&&
+				minS < maxS				&&
+				"Trying to change Freelist allocator after initialization"
+			);
+
+			minAllocationSize = minS;
+			maxAllocationSize = maxS;
+			bSize_ = maxAllocationSize;
+		}
+
+		size_t getSize()	{ return bSize_; }
+		size_t getMinSize() { return minAllocationSize; }
+		size_t getMaxSize() { return maxAllocationSize; }
 
 		Block allocate(size_t n)
 		{
-			if (n == s && root != nullptr)
-			{
-				Block b = { root, n };
-				root = root->next;
+			Block b = { nullptr, 0 };
 
+			if (minAllocationSize <= n && n <= maxAllocationSize)
+			{
+				size_t alignedSize = roundToAlligned(n, maxAllocationSize);
+
+				if (bSize_ != 0 && alignedSize == bSize_ && root_ != nullptr)
+				{
+					b = { root_, alignedSize };
+					root_ = root_->next;
+
+					return b;
+				}
+
+				b = allocator_.allocate(alignedSize);
 				return b;
 			}
 
-			return parent.allocate(n);
+			return b;
 		}
 
-		bool owns(Block b)
+		void deallocate(Block& b)
 		{
-			return b.size == s || parent.owns(b);
-		}
-
-		void deallocate(Block b)
-		{
-			if (b.size != s)
+			if (bSize_ == 0 && b.size != bSize_)
 			{
-				return parent.deallocate(b);
+				return allocator_.deallocate(b);
 			}
 
-			Node* p = b.ptr;
-			p.next = root;
-			root = p;
+			Node* p = (Node*)b.ptr;
+			p->next = root_;
+			root_ = p;
 		}
 
+		bool owns(Block& b)
+		{
+			return  b.ptr != nullptr && (b.size == blockSize || allocator_.owns(b));
+		}
 	};
 }//namespace MemoryAllocators
 #endif // !__FREELISTALLOCATOR_H_INCLUDED__
